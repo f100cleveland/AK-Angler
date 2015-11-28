@@ -13,10 +13,9 @@ THREAD="-j$(grep -c ^processor /proc/cpuinfo)"
 KERNEL="Image.gz"
 DTBIMAGE="dtb"
 DEFCONFIG="ak_angler_defconfig"
-KERNEL_DIR=`pwd`
-RESOURCE_DIR="$KERNEL_DIR/.."
-ANYKERNEL_DIR="$RESOURCE_DIR/AK-Angler-AnyKernel2"
-TOOLCHAIN_DIR="/run/media/ak/ak-android/kernel"
+KERNEL_DIR="${HOME}/kernel/ak"
+ANYKERNEL_DIR="${HOME}/kernel/AK-Angler-AnyKernel2"
+TOOLCHAIN_DIR="${HOME}/toolchain"
 
 # Kernel Details
 BASE_AK_VER="AK"
@@ -25,17 +24,17 @@ AK_VER="$BASE_AK_VER$VER"
 
 # Vars
 export LOCALVERSION=~`echo $AK_VER`
-export CROSS_COMPILE="$TOOLCHAIN_DIR/AK-uber64-4.9/bin/aarch64-linux-android-"
+export CROSS_COMPILE="$TOOLCHAIN_DIR/UBERTC-aarch64-linux-android-5.2-kernel/bin/aarch64-linux-android-"
 export ARCH=arm64
 export SUBARCH=arm64
-export KBUILD_BUILD_USER=ak
-export KBUILD_BUILD_HOST=kernel
+export KBUILD_BUILD_USER=f100cleveland
+export KBUILD_BUILD_HOST=BuildBox
 
 # Paths
 REPACK_DIR="$ANYKERNEL_DIR"
 PATCH_DIR="$ANYKERNEL_DIR/patch"
 MODULES_DIR="$ANYKERNEL_DIR/modules"
-ZIP_MOVE="$RESOURCE_DIR/AK-releases"
+ZIP_MOVE="${HOME}/AK-releases"
 ZIMAGE_DIR="$KERNEL_DIR/arch/arm64/boot"
 
 # Functions
