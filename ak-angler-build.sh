@@ -20,7 +20,7 @@ TOOLCHAIN_DIR="/run/media/ak/ak-android/kernel"
 
 # Kernel Details
 BASE_AK_VER="AK"
-VER=".008.ANGLER"
+VER=".009.ANGLER"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
