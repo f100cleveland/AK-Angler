@@ -45,7 +45,7 @@ static ssize_t headphones_boost_store(struct device *dev,
 		else if (new_val >= headphones_boost_limit)
 			new_val = headphones_boost_limit;
 
-		pr_info("New headphones_boost: %d\n", new_val);
+		pr_info("[SOUND CONTROL] Boosted Headphones: %d\n", new_val);
 
 		headphones_boost = new_val;
 		update_headphones_volume_boost(headphones_boost);
