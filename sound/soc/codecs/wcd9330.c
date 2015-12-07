@@ -8659,7 +8659,7 @@ void update_headphones_volume_boost(unsigned int vol_boost)
 	int default_val = soundcontrol_headphones.default_headphones_value;
 	int boosted_val = default_val + vol_boost;
 
-	pr_info("[SOUND CONTROL] Headphones default: %d\n", default_val);
+	pr_debug("[SOUND CONTROL] Headphones default: %d\n", default_val);
 
 	soundcontrol_headphones.playback_lock = false;
 	tomtom_write(soundcontrol_headphones.snd_control_codec,
@@ -8668,11 +8668,11 @@ void update_headphones_volume_boost(unsigned int vol_boost)
 		TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL, boosted_val);
 	soundcontrol_headphones.playback_lock = true;
 
-	pr_info("[SOUND CONTROL] Boosted Headphones RX1: %d\n",
+	pr_debug("[SOUND CONTROL] Boosted Headphones RX1: %d\n",
 		tomtom_read(soundcontrol_headphones.snd_control_codec,
 		TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL));
 
-	pr_info("[SOUND CONTROL] Boosted Headphones RX2: %d\n",
+	pr_debug("[SOUND CONTROL] Boosted Headphones RX2: %d\n",
 		tomtom_read(soundcontrol_headphones.snd_control_codec,
 		TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL));
 }
