@@ -54,11 +54,11 @@ enum {
 };
 
 #ifdef CONFIG_SOUND_CONTROL
-struct sound_control {
+struct sound_control_headphones {
 	int default_headphones_value;
 	struct snd_soc_codec *snd_control_codec;
 	bool playback_lock;
-} soundcontrol = {
+} soundcontrol_headphones = {
 	.playback_lock = false,
 };
 #endif
@@ -5290,7 +5290,7 @@ static int reg_access(unsigned int reg)
 	switch (reg) {
 		case TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL:
 		case TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL:
-			if (soundcontrol.playback_lock)
+			if (soundcontrol_headphones.playback_lock)
                                 ret = 0;
                         break;
 		default:
@@ -8656,24 +8656,24 @@ static const struct snd_soc_dapm_widget tomtom_1_dapm_widgets[] = {
 #ifdef CONFIG_SOUND_CONTROL
 void update_headphones_volume_boost(unsigned int vol_boost)
 {
-	int default_val = soundcontrol.default_headphones_value;
+	int default_val = soundcontrol_headphones.default_headphones_value;
 	int boosted_val = default_val + vol_boost;
 
-	pr_info("Sound Control: Headphones default value %d\n", default_val);
+	pr_info("[SOUND CONTROL] Headphones default: %d\n", default_val);
 
-	soundcontrol.playback_lock = false;
-	tomtom_write(soundcontrol.snd_control_codec,
+	soundcontrol_headphones.playback_lock = false;
+	tomtom_write(soundcontrol_headphones.snd_control_codec,
 		TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL, boosted_val);
-	tomtom_write(soundcontrol.snd_control_codec,
+	tomtom_write(soundcontrol_headphones.snd_control_codec,
 		TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL, boosted_val);
-	soundcontrol.playback_lock = true;
+	soundcontrol_headphones.playback_lock = true;
 
-	pr_info("Sound Control: Boosted Headphones RX1 value %d\n",
-		tomtom_read(soundcontrol.snd_control_codec,
+	pr_info("[SOUND CONTROL] Boosted Headphones RX1: %d\n",
+		tomtom_read(soundcontrol_headphones.snd_control_codec,
 		TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL));
 
-	pr_info("Sound Control: Boosted Headphones RX2 value %d\n",
-		tomtom_read(soundcontrol.snd_control_codec,
+	pr_info("[SOUND CONTROL] Boosted Headphones RX2: %d\n",
+		tomtom_read(soundcontrol_headphones.snd_control_codec,
 		TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL));
 }
 #endif
@@ -8806,7 +8806,7 @@ static int tomtom_codec_probe(struct snd_soc_codec *codec)
 	void *ptr = NULL;
 	struct wcd9xxx_core_resource *core_res;
 #ifdef CONFIG_SOUND_CONTROL
-	soundcontrol.snd_control_codec = codec;
+	soundcontrol_headphones.snd_control_codec = codec;
 #endif
 	codec->control_data = dev_get_drvdata(codec->dev->parent);
 	control = codec->control_data;
@@ -8977,7 +8977,7 @@ static int tomtom_codec_probe(struct snd_soc_codec *codec)
 	/*
 	 * Get the default values during probe
 	 */
-	soundcontrol.default_headphones_value = tomtom_read(codec,
+	soundcontrol_headphones.default_headphones_value = tomtom_read(codec,
 		TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL);
 #endif
 	ret = tomtom_cpe_initialize(codec);
