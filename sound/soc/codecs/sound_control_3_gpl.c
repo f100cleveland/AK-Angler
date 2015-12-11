@@ -3,6 +3,8 @@
  *
  * Copyright (C) 2013 Paul Reioux <reioux@gmail.com>
  *
+ * max98925 speaker gain and cleanup by flar2
+ *
  * WCD93xx sound control module
  *
  * Adapted to WCD9330 TomTom codec driver
@@ -28,10 +30,13 @@
 #include <linux/mfd/wcd9xxx/wcd9330_registers.h>
 
 #define SOUND_CONTROL_MAJOR_VERSION	3
-#define SOUND_CONTROL_MINOR_VERSION	6
+#define SOUND_CONTROL_MINOR_VERSION	7
 
 extern struct snd_soc_codec *fauxsound_codec_ptr;
 extern int wcd9xxx_hw_revision;
+
+extern int speaker_gain_lval;
+extern int speaker_gain_rval;
 
 static int snd_ctrl_locked = 1;
 static int snd_rec_ctrl_locked = 0;
@@ -256,32 +261,27 @@ static ssize_t speaker_gain_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
         return sprintf(buf, "%u %u",
-			tomtom_read(fauxsound_codec_ptr,
-				TOMTOM_A_CDC_RX5_VOL_CTL_B2_CTL),
-			tomtom_read(fauxsound_codec_ptr,
-				TOMTOM_A_CDC_RX5_VOL_CTL_B2_CTL));
-
+			speaker_gain_lval,
+			speaker_gain_rval);
 }
 
 static ssize_t speaker_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
-	int lval, rval, chksum;
+	int lval, rval;
 
-	sscanf(buf, "%i %i %i", &lval, &rval, &chksum);
-	
-	if (lval < 0)
-		lval = 0;
-	
-	if (rval < 0)
-		rval = 0;
+	sscanf(buf, "%i %i", &lval, &rval);
 
-	if (calc_checksum(lval, rval, chksum)) {
-		tomtom_write(fauxsound_codec_ptr,
-			TOMTOM_A_CDC_RX5_VOL_CTL_B2_CTL, lval);
-		tomtom_write(fauxsound_codec_ptr,
-			TOMTOM_A_CDC_RX5_VOL_CTL_B2_CTL, rval);
-	}
+	if (lval >= 0 && lval < 31)
+		speaker_gain_lval = lval;
+	else
+		speaker_gain_lval = 20;
+
+	if (rval >= 0 && rval < 31)
+		speaker_gain_rval = rval;
+	else
+		speaker_gain_rval = 20;
+
 	return count;
 }
 
@@ -313,49 +313,6 @@ static ssize_t headphone_gain_store(struct kobject *kobj,
 			TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL, lval);
 		tomtom_write(fauxsound_codec_ptr,
 			TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL, rval);
-	}
-	return count;
-}
-
-static ssize_t headphone_pa_gain_show(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u %u",
-		tomtom_read(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_L_GAIN),
-		tomtom_read(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_R_GAIN));
-}
-
-static ssize_t headphone_pa_gain_store(struct kobject *kobj,
-		struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	int lval, rval, chksum;
-	unsigned int gain, status;
-	unsigned int out;
-
-	sscanf(buf, "%i %i %i", &lval, &rval, &chksum);
-	
-	if (lval < 0)
-		lval = 0;
-	
-	if (rval < 0)
-		rval = 0;
-
-	if (calc_checksum(lval, rval, chksum)) {
-	gain = tomtom_read(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_L_GAIN);
-	out = (gain & 0xf0) | lval;
-	tomtom_write(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_L_GAIN, out);
-
-	status = tomtom_read(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_L_STATUS);
-	out = (status & 0x0f) | (lval << 4);
-	tomtom_write(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_L_STATUS, out);
-
-	gain = tomtom_read(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_R_GAIN);
-	out = (gain & 0xf0) | rval;
-	tomtom_write(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_R_GAIN, out);
-
-	status = tomtom_read(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_R_STATUS);
-	out = (status & 0x0f) | (rval << 4);
-	tomtom_write(fauxsound_codec_ptr, TOMTOM_A_RX_HPH_R_STATUS, out);
 	}
 	return count;
 }
@@ -485,12 +442,6 @@ static struct kobj_attribute headphone_gain_attribute =
 		headphone_gain_show,
 		headphone_gain_store);
 
-static struct kobj_attribute headphone_pa_gain_attribute =
-	__ATTR(gpl_headphone_pa_gain,
-		0666,
-		headphone_pa_gain_show,
-		headphone_pa_gain_store);
-
 static struct kobj_attribute sound_control_locked_attribute =
 	__ATTR(gpl_sound_control_locked,
 		0666,
@@ -519,7 +470,6 @@ static struct attribute *sound_control_attrs[] =
 		&mic_gain_attribute.attr,
 		&speaker_gain_attribute.attr,
 		&headphone_gain_attribute.attr,
-		&headphone_pa_gain_attribute.attr,
 		&sound_control_locked_attribute.attr,
 		&sound_control_rec_locked_attribute.attr,
 		&sound_reg_sel_attribute.attr,
