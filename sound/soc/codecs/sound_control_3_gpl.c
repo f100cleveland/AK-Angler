@@ -1,15 +1,14 @@
 /*
- * sound/soc/codecs/sound_control_3_gpl.c
- *
- * Copyright (C) 2013 Paul Reioux <reioux@gmail.com>
- *
- * max98925 speaker gain and cleanup by flar2
+ * Author: Paul Reioux aka Faux123 <reioux@gmail.com>
  *
  * WCD93xx sound control module
+ * Copyright 2013 Paul Reioux
  *
  * Adapted to WCD9330 TomTom codec driver
  * Pafcholini <pafcholini@gmail.com>
  * Thanks to Thehacker911 for the tip
+ *
+ * max98925 speaker gain and cleanup by flar2
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -26,190 +25,19 @@
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 #include <linux/kallsyms.h>
-#include <linux/mfd/wcd9xxx/core.h>
 #include <linux/mfd/wcd9xxx/wcd9330_registers.h>
 
 #define SOUND_CONTROL_MAJOR_VERSION	3
-#define SOUND_CONTROL_MINOR_VERSION	7
+#define SOUND_CONTROL_MINOR_VERSION	0
 
 extern struct snd_soc_codec *fauxsound_codec_ptr;
-extern int wcd9xxx_hw_revision;
 
 extern int speaker_gain_lval;
 extern int speaker_gain_rval;
 
-static int snd_ctrl_locked = 1;
-static int snd_rec_ctrl_locked = 0;
-
 unsigned int tomtom_read(struct snd_soc_codec *codec, unsigned int reg);
 int tomtom_write(struct snd_soc_codec *codec, unsigned int reg,
 		unsigned int value);
-
-#define REG_SZ	25
-static unsigned int cached_regs[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			    0, 0, 0, 0, 0 };
-
-static unsigned int *cache_select(unsigned int reg)
-{
-	unsigned int *out = NULL;
-
-        switch (reg) {
-                case TOMTOM_A_RX_HPH_L_GAIN:
-			out = &cached_regs[0];
-			break;
-                case TOMTOM_A_RX_HPH_R_GAIN:
-			out = &cached_regs[1];
-			break;
-                case TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL:
-			out = &cached_regs[4];
-			break;
-                case TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL:
-			out = &cached_regs[5];
-			break;
-                case TOMTOM_A_CDC_RX3_VOL_CTL_B2_CTL:
-			out = &cached_regs[6];
-			break;
-                case TOMTOM_A_CDC_RX4_VOL_CTL_B2_CTL:
-			out = &cached_regs[7];
-			break;
-                case TOMTOM_A_CDC_RX5_VOL_CTL_B2_CTL:
-			out = &cached_regs[8];
-			break;
-                case TOMTOM_A_CDC_RX6_VOL_CTL_B2_CTL:
-			out = &cached_regs[9];
-			break;
-                case TOMTOM_A_CDC_RX7_VOL_CTL_B2_CTL:
-			out = &cached_regs[10];
-			break;
-                case TOMTOM_A_CDC_RX8_VOL_CTL_B2_CTL:
-			out = &cached_regs[11];
-			break;
-                case TOMTOM_A_CDC_TX1_VOL_CTL_GAIN:
-			out = &cached_regs[12];
-			break;
-                case TOMTOM_A_CDC_TX2_VOL_CTL_GAIN:
-			out = &cached_regs[13];
-			break;
-                case TOMTOM_A_CDC_TX3_VOL_CTL_GAIN:
-			out = &cached_regs[14];
-			break;
-                case TOMTOM_A_CDC_TX4_VOL_CTL_GAIN:
-			out = &cached_regs[15];
-			break;
-                case TOMTOM_A_CDC_TX5_VOL_CTL_GAIN:
-			out = &cached_regs[16];
-			break;
-                case TOMTOM_A_CDC_TX6_VOL_CTL_GAIN:
-			out = &cached_regs[17];
-			break;
-                case TOMTOM_A_CDC_TX7_VOL_CTL_GAIN:
-			out = &cached_regs[18];
-			break;
-                case TOMTOM_A_CDC_TX8_VOL_CTL_GAIN:
-			out = &cached_regs[19];
-			break;
-                case TOMTOM_A_CDC_TX9_VOL_CTL_GAIN:
-			out = &cached_regs[20];
-			break;
-                case TOMTOM_A_CDC_TX10_VOL_CTL_GAIN:
-			out = &cached_regs[21];
-			break;
-		case TOMTOM_A_RX_LINE_1_GAIN:
-			out = &cached_regs[22];
-			break;
-		case TOMTOM_A_RX_LINE_2_GAIN:
-			out = &cached_regs[23];
-			break;
-		case TOMTOM_A_RX_LINE_3_GAIN:
-			out = &cached_regs[24];
-			break;
-		case TOMTOM_A_RX_LINE_4_GAIN:
-			out = &cached_regs[25];
-			break;
-        }
-	return out;
-}
-
-void snd_hax_cache_write(unsigned int reg, unsigned int value)
-{
-	unsigned int *tmp = cache_select(reg);
-
-	if (tmp != NULL)
-		*tmp = value;
-}
-EXPORT_SYMBOL(snd_hax_cache_write);
-
-unsigned int snd_hax_cache_read(unsigned int reg)
-{
-	if (cache_select(reg) != NULL)
-		return *cache_select(reg);
-	else
-		return -1;
-}
-EXPORT_SYMBOL(snd_hax_cache_read);
-
-int snd_hax_reg_access(unsigned int reg)
-{
-	int ret = 1;
-
-	switch (reg) {
-		case TOMTOM_A_RX_HPH_L_GAIN:
-		case TOMTOM_A_RX_HPH_R_GAIN:
-		case TOMTOM_A_RX_HPH_L_STATUS:
-		case TOMTOM_A_RX_HPH_R_STATUS:
-			if (snd_ctrl_locked > 1)
-				ret = 0;
-			break;
-		case TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL:
-		case TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL:
-		case TOMTOM_A_CDC_RX3_VOL_CTL_B2_CTL:
-		case TOMTOM_A_CDC_RX4_VOL_CTL_B2_CTL:
-		case TOMTOM_A_CDC_RX5_VOL_CTL_B2_CTL:
-		case TOMTOM_A_CDC_RX6_VOL_CTL_B2_CTL:
-		case TOMTOM_A_CDC_RX7_VOL_CTL_B2_CTL:
-		case TOMTOM_A_CDC_RX8_VOL_CTL_B2_CTL:
-		case TOMTOM_A_RX_LINE_1_GAIN:
-		case TOMTOM_A_RX_LINE_2_GAIN:
-		case TOMTOM_A_RX_LINE_3_GAIN:
-		case TOMTOM_A_RX_LINE_4_GAIN:
-			if (snd_ctrl_locked > 0)
-				ret = 0;
-			break;
-		case TOMTOM_A_CDC_TX1_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX2_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX3_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX4_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX5_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX6_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX7_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX8_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX9_VOL_CTL_GAIN:
-		case TOMTOM_A_CDC_TX10_VOL_CTL_GAIN:
-			if (snd_rec_ctrl_locked > 0)
-				ret = 0;
-			break;
-		default:
-			break;
-	}
-	return ret;
-}
-EXPORT_SYMBOL(snd_hax_reg_access);
-
-static bool calc_checksum(unsigned int a, unsigned int b, unsigned int c)
-{
-	unsigned char chksum = 0;
-
-	chksum = ~((a & 0xff) + (b & 0xff));
-	
-	return true;
-
-	if (chksum == (c & 0xff)) {
-		return true;
-	} else {
-		return false;
-	}
-}
 
 static ssize_t cam_mic_gain_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
@@ -223,14 +51,13 @@ static ssize_t cam_mic_gain_show(struct kobject *kobj,
 static ssize_t cam_mic_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
-	unsigned int lval, chksum;
+	unsigned int lval;
 
-	sscanf(buf, "%u %u", &lval, &chksum);
+	sscanf(buf, "%u", &lval);
 
-	if (calc_checksum(lval, 0, chksum)) {
-		tomtom_write(fauxsound_codec_ptr,
-			TOMTOM_A_CDC_TX4_VOL_CTL_GAIN, lval);
-	}
+	tomtom_write(fauxsound_codec_ptr,
+		TOMTOM_A_CDC_TX4_VOL_CTL_GAIN, lval);
+
 	return count;
 }
 
@@ -245,178 +72,113 @@ static ssize_t mic_gain_show(struct kobject *kobj,
 static ssize_t mic_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
-	unsigned int lval, chksum;
+	unsigned int lval;
 
-	sscanf(buf, "%u %u", &lval, &chksum);
+	sscanf(buf, "%u", &lval);
 
-	if (calc_checksum(lval, 0, chksum)) {
-		tomtom_write(fauxsound_codec_ptr,
-			TOMTOM_A_CDC_TX6_VOL_CTL_GAIN, lval);
-	}
+	tomtom_write(fauxsound_codec_ptr,
+		TOMTOM_A_CDC_TX6_VOL_CTL_GAIN, lval);
+
 	return count;
 
 }
 
-static ssize_t speaker_gain_show(struct kobject *kobj,
+static ssize_t speaker_l_gain_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
-        return sprintf(buf, "%u %u",
-			speaker_gain_lval,
-			speaker_gain_rval);
+        return sprintf(buf, "%u",
+			speaker_gain_lval);
+
 }
 
-static ssize_t speaker_gain_store(struct kobject *kobj,
+static ssize_t speaker_r_gain_show(struct kobject *kobj,
+                struct kobj_attribute *attr, char *buf)
+{
+        return sprintf(buf, "%u",
+                        speaker_gain_rval);
+
+}
+
+static ssize_t speaker_l_gain_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
 {
-	int lval, rval;
+	unsigned int lval;
 
-	sscanf(buf, "%i %i", &lval, &rval);
+	sscanf(buf, "%u", &lval);
 
 	if (lval >= 0 && lval < 31)
 		speaker_gain_lval = lval;
 	else
 		speaker_gain_lval = 20;
 
-	if (rval >= 0 && rval < 31)
-		speaker_gain_rval = rval;
-	else
-		speaker_gain_rval = 20;
-
 	return count;
 }
 
-static ssize_t headphone_gain_show(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%u %u",
-			tomtom_read(fauxsound_codec_ptr,
-				TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL),
-			tomtom_read(fauxsound_codec_ptr,
-				TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL));
-}
 
-static ssize_t headphone_gain_store(struct kobject *kobj,
-		struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	int lval, rval, chksum;
-
-	sscanf(buf, "%i %i %i", &lval, &rval, &chksum);
-	
-	if (lval < 0)
-		lval = 0;
-	
-	if (rval < 0)
-		rval = 0;
-
-	if (calc_checksum(lval, rval, chksum)) {
-		tomtom_write(fauxsound_codec_ptr,
-			TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL, lval);
-		tomtom_write(fauxsound_codec_ptr,
-			TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL, rval);
-	}
-	return count;
-}
-
-static unsigned int selected_reg = 0xdeadbeef;
-
-static ssize_t sound_reg_select_store(struct kobject *kobj,
+static ssize_t speaker_r_gain_store(struct kobject *kobj,
                 struct kobj_attribute *attr, const char *buf, size_t count)
 {
-        sscanf(buf, "%u", &selected_reg);
+        unsigned int rval;
 
-	return count;
+        sscanf(buf, "%u", &rval);
+
+        if (rval >= 0 && rval < 31)
+                speaker_gain_rval = rval;
+        else
+                speaker_gain_rval = 20;
+
+        return count;
 }
 
-static ssize_t sound_reg_read_show(struct kobject *kobj,
+static ssize_t headphone_l_gain_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u",
+			tomtom_read(fauxsound_codec_ptr,
+				TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL));
+}
+
+static ssize_t headphone_r_gain_show(struct kobject *kobj,
                 struct kobj_attribute *attr, char *buf)
 {
-	if (selected_reg == 0xdeadbeef)
-		return -1;
-	else
-		return sprintf(buf, "%u\n",
-			tomtom_read(fauxsound_codec_ptr, selected_reg));
+        return sprintf(buf, "%u",
+                        tomtom_read(fauxsound_codec_ptr,
+                                TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL));
 }
 
-static ssize_t sound_reg_write_store(struct kobject *kobj,
-                struct kobj_attribute *attr, const char *buf, size_t count)
+static ssize_t headphone_l_gain_store(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
 {
-        unsigned int out, chksum;
+	unsigned int lval;
 
-	sscanf(buf, "%u %u", &out, &chksum);
-	if (calc_checksum(out, 0, chksum)) {
-		if (selected_reg != 0xdeadbeef)
-			tomtom_write(fauxsound_codec_ptr, selected_reg, out);
-	}
+	sscanf(buf, "%u", &lval);
+
+	tomtom_write(fauxsound_codec_ptr,
+		TOMTOM_A_CDC_RX1_VOL_CTL_B2_CTL, lval);
+
 	return count;
 }
 
-static ssize_t sound_control_hw_revision_show (struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
+static ssize_t headphone_r_gain_store(struct kobject *kobj,
+                struct kobj_attribute *attr, const char *buf, size_t count)
 {
-	return sprintf(buf, "hw_revision: %i\n", wcd9xxx_hw_revision);
+        unsigned int rval;
+
+        sscanf(buf, "%u", &rval);
+
+        tomtom_write(fauxsound_codec_ptr,
+                TOMTOM_A_CDC_RX2_VOL_CTL_B2_CTL, rval);
+
+        return count;
 }
 
-static ssize_t sound_control_version_show(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
+
+static ssize_t sound_control_version_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "version: %u.%u\n",
 			SOUND_CONTROL_MAJOR_VERSION,
 			SOUND_CONTROL_MINOR_VERSION);
 }
-
-static ssize_t sound_control_locked_store(struct kobject *kobj,
-                struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	int inp;
-
-	sscanf(buf, "%d", &inp);
-
-	snd_ctrl_locked = inp;
-
-	return count;
-}
-
-static ssize_t sound_control_locked_show(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
-{
-        return sprintf(buf, "%d\n", snd_ctrl_locked);
-}
-
-static ssize_t sound_control_rec_locked_store(struct kobject *kobj,
-                struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	int inp;
-
-	sscanf(buf, "%d", &inp);
-
-	snd_rec_ctrl_locked = inp;
-
-	return count;
-}
-
-static ssize_t sound_control_rec_locked_show(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
-{
-        return sprintf(buf, "%d\n", snd_rec_ctrl_locked);
-}
-
-static struct kobj_attribute sound_reg_sel_attribute =
-	__ATTR(sound_reg_sel,
-		0222,
-		NULL,
-		sound_reg_select_store);
-
-static struct kobj_attribute sound_reg_read_attribute =
-	__ATTR(sound_reg_read,
-		0444,
-		sound_reg_read_show,
-		NULL);
-
-static struct kobj_attribute sound_reg_write_attribute =
-	__ATTR(sound_reg_write,
-		0222,
-		NULL,
-		sound_reg_write_store);
 
 static struct kobj_attribute cam_mic_gain_attribute =
 	__ATTR(gpl_cam_mic_gain,
@@ -430,52 +192,43 @@ static struct kobj_attribute mic_gain_attribute =
 		mic_gain_show,
 		mic_gain_store);
 
-static struct kobj_attribute speaker_gain_attribute =
-	__ATTR(gpl_speaker_gain,
+static struct kobj_attribute speaker_l_gain_attribute =
+	__ATTR(gpl_speaker_l_gain,
 		0666,
-		speaker_gain_show,
-		speaker_gain_store);
+		speaker_l_gain_show,
+		speaker_l_gain_store);
 
-static struct kobj_attribute headphone_gain_attribute =
-	__ATTR(gpl_headphone_gain,
-		0666,
-		headphone_gain_show,
-		headphone_gain_store);
+static struct kobj_attribute speaker_r_gain_attribute =
+        __ATTR(gpl_speaker_r_gain,
+                0666,
+                speaker_r_gain_show,
+                speaker_r_gain_store);
 
-static struct kobj_attribute sound_control_locked_attribute =
-	__ATTR(gpl_sound_control_locked,
+static struct kobj_attribute headphone_l_gain_attribute =
+	__ATTR(gpl_headphone_l_gain,
 		0666,
-		sound_control_locked_show,
-		sound_control_locked_store);
+		headphone_l_gain_show,
+		headphone_l_gain_store);
 
-static struct kobj_attribute sound_control_rec_locked_attribute =
-	__ATTR(gpl_sound_control_rec_locked,
-		0666,
-		sound_control_rec_locked_show,
-		sound_control_rec_locked_store);
+static struct kobj_attribute headphone_r_gain_attribute =
+        __ATTR(gpl_headphone_r_gain,
+                0666,
+                headphone_r_gain_show,
+                headphone_r_gain_store);
 
 static struct kobj_attribute sound_control_version_attribute =
 	__ATTR(gpl_sound_control_version,
 		0444,
 		sound_control_version_show, NULL);
 
-static struct kobj_attribute sound_hw_revision_attribute =
-	__ATTR(gpl_sound_control_hw_revision,
-		0444,
-		sound_control_hw_revision_show, NULL);
-
 static struct attribute *sound_control_attrs[] =
 	{
 		&cam_mic_gain_attribute.attr,
 		&mic_gain_attribute.attr,
-		&speaker_gain_attribute.attr,
-		&headphone_gain_attribute.attr,
-		&sound_control_locked_attribute.attr,
-		&sound_control_rec_locked_attribute.attr,
-		&sound_reg_sel_attribute.attr,
-		&sound_reg_read_attribute.attr,
-		&sound_reg_write_attribute.attr,
-		&sound_hw_revision_attribute.attr,
+		&speaker_l_gain_attribute.attr,
+		&speaker_r_gain_attribute.attr,
+		&headphone_l_gain_attribute.attr,
+		&headphone_r_gain_attribute.attr,
 		&sound_control_version_attribute.attr,
 		NULL,
 	};
