@@ -86,7 +86,7 @@ struct cpufreq_impulse_tunables {
 #define HISPEED_FREQ 960000;
 	unsigned int hispeed_freq;
 	/* Go to hi speed when CPU load at or above this value. */
-#define DEFAULT_GO_HISPEED_LOAD 90
+#define DEFAULT_GO_HISPEED_LOAD 95
 	unsigned long go_hispeed_load;
 /* Go to lowest speed when CPU load at or below this value. */
 #define DEFAULT_GO_LOWSPEED_LOAD 10
@@ -130,9 +130,7 @@ struct cpufreq_impulse_tunables {
 	bool io_is_busy;
 
 	/* scheduler input related flags */
-#define DEFAULT_USE_SCHED_LOAD 1
 	bool use_sched_load;
-#define DEFAULT_USE_MIGRATION_NOTIF 1
 	bool use_migration_notif;
 
 	/*
@@ -468,11 +466,7 @@ static void cpufreq_impulse_timer(unsigned long data)
 
 	spin_lock_irqsave(&pcpu->target_freq_lock, flags);
 	cpu_load = loadadjfreq / pcpu->policy->cur;
-#ifdef CONFIG_CPU_BOOST
-	tunables->boosted = check_cpuboost(data) || tunables->boost_val ||
-#else
 	tunables->boosted = tunables->boost_val ||
-#endif
 			now < tunables->boostpulse_endtime ||
 			cpu_load >= tunables->go_hispeed_load;
 	tunables->boosted = tunables->boosted && !suspended;
@@ -1253,19 +1247,15 @@ static ssize_t store_use_sched_load(
 
 	if (tunables->use_sched_load == (bool) val)
 		return count;
-
-	tunables->use_sched_load = val;
-
 	if (val)
 		ret = cpufreq_impulse_enable_sched_input(tunables);
 	else
 		ret = cpufreq_impulse_disable_sched_input(tunables);
 
-	if (ret) {
-		tunables->use_sched_load = !val;
+	if (ret)
 		return ret;
-	}
 
+	tunables->use_sched_load = val;
 	return count;
 }
 
@@ -1538,8 +1528,6 @@ static struct cpufreq_impulse_tunables *alloc_tunable(
 	tunables->timer_slack_val = DEFAULT_TIMER_SLACK;
 	tunables->io_is_busy = DEFAULT_IO_IS_BUSY;
 	tunables->max_freq_hysteresis = DEFAULT_MAX_FREQ_HYSTERESIS;
-	tunables->use_sched_load = DEFAULT_USE_SCHED_LOAD;
-	tunables->use_migration_notif = DEFAULT_USE_MIGRATION_NOTIF;
 
 	spin_lock_init(&tunables->target_loads_lock);
 	spin_lock_init(&tunables->above_hispeed_delay_lock);
