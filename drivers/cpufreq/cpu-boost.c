@@ -58,8 +58,8 @@ module_param(boost_ms, uint, 0644);
 static unsigned int sync_threshold;
 module_param(sync_threshold, uint, 0644);
 
-static unsigned int input_boost_enabled = 1;
-module_param(input_boost_enabled, uint, 0644);
+static bool input_boost_enabled;
+static bool suspended;
 
 static unsigned int input_boost_ms = 40;
 module_param(input_boost_ms, uint, 0644);
@@ -92,6 +92,7 @@ static int set_input_boost_freq(const char *buf, const struct kernel_param *kp)
 	int i, ntokens = 0;
 	unsigned int val, cpu;
 	const char *cp = buf;
+	bool enabled = false;
 
 	while ((cp = strpbrk(cp + 1, " :")))
 		ntokens++;
@@ -102,7 +103,7 @@ static int set_input_boost_freq(const char *buf, const struct kernel_param *kp)
 			return -EINVAL;
 		for_each_possible_cpu(i)
 			per_cpu(sync_info, i).input_boost_freq = val;
-		goto out;
+		goto check_enable;
 	}
 
 	/* CPU:value pair */
@@ -121,7 +122,15 @@ static int set_input_boost_freq(const char *buf, const struct kernel_param *kp)
 		cp++;
 	}
 
-out:
+check_enable:
+	for_each_possible_cpu(i) {
+		if (per_cpu(sync_info, i).input_boost_freq) {
+			enabled = true;
+			break;
+		}
+	}
+	input_boost_enabled = enabled;
+
 	return 0;
 }
 
@@ -169,11 +178,9 @@ static int boost_adjust_notify(struct notifier_block *nb, unsigned long val,
 	min = max(b_min, ib_min);
 	min = min(min, policy->max);
 
-		min = min(min, policy->max);
-
-		pr_debug("CPU%u policy min before boost: %u kHz\n",
-			 cpu, policy->min);
-		pr_debug("CPU%u boost min: %u kHz\n", cpu, min);
+	pr_debug("CPU%u policy min before boost: %u kHz\n",
+		 cpu, policy->min);
+	pr_debug("CPU%u boost min: %u kHz\n", cpu, min);
 
 	cpufreq_verify_within_limits(policy, min, UINT_MAX);
 
