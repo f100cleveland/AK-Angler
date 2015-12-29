@@ -492,6 +492,7 @@ static int set_cpu_max_freq(const char *buf, const struct kernel_param *kp)
 	}
 	put_online_cpus();
 #endif
+
 	return 0;
 }
 
