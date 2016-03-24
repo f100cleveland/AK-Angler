@@ -18,8 +18,8 @@ ANYKERNEL_DIR="${HOME}/kernel/AK-AnyKernel2"
 TOOLCHAIN_DIR="${HOME}/toolchain"
 
 # Kernel Details
-BASE_AK_VER="AK"
-VER=".fuckery.5"
+BASE_AK_VER="~fuckery"
+VER=".5.1"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
