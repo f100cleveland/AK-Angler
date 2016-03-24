@@ -14,7 +14,7 @@ KERNEL="Image.gz"
 DTBIMAGE="dtb"
 DEFCONFIG="saber_defconfig"
 KERNEL_DIR="${HOME}/kernel/ak"
-ANYKERNEL_DIR="${HOME}/kernel/AK-Angler-AnyKernel2"
+ANYKERNEL_DIR="${HOME}/kernel/AK-AnyKernel2"
 TOOLCHAIN_DIR="${HOME}/toolchain"
 
 # Kernel Details
