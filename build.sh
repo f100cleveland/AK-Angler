@@ -9,7 +9,7 @@ restore='\033[0m'
 clear
 
 # Resources
-THREAD="-j$(grep -c ^processor /proc/cpuinfo)"
+THREAD="-j32"
 KERNEL="Image.gz"
 DTBIMAGE="dtb"
 DEFCONFIG="saber_defconfig"
