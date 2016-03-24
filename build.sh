@@ -12,19 +12,19 @@ clear
 THREAD="-j$(grep -c ^processor /proc/cpuinfo)"
 KERNEL="Image.gz"
 DTBIMAGE="dtb"
-DEFCONFIG="ak_angler_defconfig"
+DEFCONFIG="saber_defconfig"
 KERNEL_DIR="${HOME}/kernel/ak"
 ANYKERNEL_DIR="${HOME}/kernel/AK-Angler-AnyKernel2"
 TOOLCHAIN_DIR="${HOME}/toolchain"
 
 # Kernel Details
 BASE_AK_VER="AK"
-VER=".060.ANGLER.EAS"
+VER=".fuckery.5"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
 export LOCALVERSION=~`echo $AK_VER`
-export CROSS_COMPILE="$TOOLCHAIN_DIR/UBERTC-aarch64-linux-android-6.0-kernel/bin/aarch64-linux-android-"
+export CROSS_COMPILE="$TOOLCHAIN_DIR/UBERTC-aarch64-linux-android-5.3-kernel/bin/aarch64-linux-android-"
 export ARCH=arm64
 export SUBARCH=arm64
 export KBUILD_BUILD_USER=f100cleveland
