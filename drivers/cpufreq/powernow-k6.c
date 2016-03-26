@@ -48,9 +48,6 @@ static struct cpufreq_frequency_table clock_ratio[] = {
 	{0, CPUFREQ_TABLE_END}
 };
 
-static const u8 index_to_register[8] = { 6, 3, 1, 0, 2, 7, 5, 4 };
-static const u8 register_to_index[8] = { 3, 2, 4, 1, 7, 6, 0, 5 };
-
 static const struct {
 	unsigned freq;
 	unsigned mult;
@@ -216,7 +213,7 @@ static int powernow_k6_cpu_init(struct cpufreq_policy *policy)
 	}
 	if (param_max_multiplier) {
 		for (i = 0; (clock_ratio[i].frequency != CPUFREQ_TABLE_END); i++) {
-			if (clock_ratio[i].driver_data == param_max_multiplier) {
+			if (clock_ratio[i].index == param_max_multiplier) {
 				max_multiplier = param_max_multiplier;
 				goto have_max_multiplier;
 			}
