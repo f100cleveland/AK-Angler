@@ -14,12 +14,12 @@ KERNEL="Image.gz"
 DTBIMAGE="dtb"
 DEFCONFIG="saber_defconfig"
 KERNEL_DIR="${HOME}/kernel/ak"
-ANYKERNEL_DIR="${HOME}/kernel/AK-AnyKernel2"
+ANYKERNEL_DIR="$KERNEL_DIR/saberCore/AK-AnyKernel2"
 TOOLCHAIN_DIR="${HOME}/toolchain"
 
 # Kernel Details
 BASE_AK_VER="fuckery"
-VER=".5.17"
+VER=".5.18"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
@@ -34,7 +34,7 @@ export KBUILD_BUILD_HOST=BuildBox
 REPACK_DIR="$ANYKERNEL_DIR"
 PATCH_DIR="$ANYKERNEL_DIR/patch"
 MODULES_DIR="$ANYKERNEL_DIR/modules"
-ZIP_MOVE="${HOME}/AK-releases"
+ZIP_MOVE="$KERNEL_DIR/saber-zip"
 ZIMAGE_DIR="$KERNEL_DIR/arch/arm64/boot"
 
 # Functions
