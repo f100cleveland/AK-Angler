@@ -2,6 +2,7 @@
 #####################
 # SDIO Basic feature
 #####################
+CFLAGS_KERNEL := -fno-unsafe-math-optimizations -fno-strict-aliasing -Wno-memset-transposed-args
 
 EXTRA_CFLAGS += -Wno-memset-transposed-args
 
