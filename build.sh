@@ -19,7 +19,7 @@ TOOLCHAIN_DIR="${HOME}/toolchain"
 
 # Kernel Details
 BASE_AK_VER="fuckery"
-VER=".5.23"
+VER=".5.25"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
@@ -39,9 +39,8 @@ ZIMAGE_DIR="$KERNEL_DIR/arch/arm64/boot"
 
 # Functions
 function clean_all {
-		echo; ccache -c -C echo;
 		if [ -f "$MODULES_DIR/*.ko" ]; then
-			rm `echo $MODULES_DIR"/*.ko"`
+		rm `echo $MODULES_DIR"/*.ko"`
 		fi
 		cd $REPACK_DIR
 		rm -rf $KERNEL
